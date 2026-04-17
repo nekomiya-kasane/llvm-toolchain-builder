@@ -49,12 +49,11 @@ jobs:
             ca-certificates curl make gcc libssl-dev libcurl4-openssl-dev \
             libexpat1-dev gettext zlib1g-dev autoconf
           GIT_VER=2.47.2
-          cd /tmp
-          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.xz" -o git.tar.xz
-          tar xf git.tar.xz && cd "git-${GIT_VER}"
-          make prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
-          make prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
-          cd /tmp && rm -rf "git-${GIT_VER}" git.tar.xz
+          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.gz" -o /tmp/git.tar.gz
+          tar xzf /tmp/git.tar.gz -C /tmp
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
+          rm -rf "/tmp/git-${GIT_VER}" /tmp/git.tar.gz
           git --version
 
       - name: Checkout
@@ -122,12 +121,11 @@ jobs:
             ca-certificates curl make gcc libssl-dev libcurl4-openssl-dev \
             libexpat1-dev gettext zlib1g-dev autoconf
           GIT_VER=2.47.2
-          cd /tmp
-          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.xz" -o git.tar.xz
-          tar xf git.tar.xz && cd "git-${GIT_VER}"
-          make prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
-          make prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
-          cd /tmp && rm -rf "git-${GIT_VER}" git.tar.xz
+          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.gz" -o /tmp/git.tar.gz
+          tar xzf /tmp/git.tar.gz -C /tmp
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
+          rm -rf "/tmp/git-${GIT_VER}" /tmp/git.tar.gz
           git --version
 
       - name: Checkout
@@ -208,12 +206,11 @@ jobs:
             ca-certificates curl file patchelf xz-utils libc6-dev \
             make gcc libssl-dev libcurl4-openssl-dev libexpat1-dev gettext zlib1g-dev autoconf
           GIT_VER=2.47.2
-          cd /tmp
-          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.xz" -o git.tar.xz
-          tar xf git.tar.xz && cd "git-${GIT_VER}"
-          make prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
-          make prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
-          cd /tmp && rm -rf "git-${GIT_VER}" git.tar.xz
+          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.gz" -o /tmp/git.tar.gz
+          tar xzf /tmp/git.tar.gz -C /tmp
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
+          rm -rf "/tmp/git-${GIT_VER}" /tmp/git.tar.gz
           git --version
 
       - name: Checkout
@@ -286,12 +283,11 @@ jobs:
             ca-certificates curl file patchelf xz-utils libc6-dev \
             make gcc libssl-dev libcurl4-openssl-dev libexpat1-dev gettext zlib1g-dev autoconf
           GIT_VER=2.47.2
-          cd /tmp
-          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.xz" -o git.tar.xz
-          tar xf git.tar.xz && cd "git-${GIT_VER}"
-          make prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
-          make prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
-          cd /tmp && rm -rf "git-${GIT_VER}" git.tar.xz
+          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.gz" -o /tmp/git.tar.gz
+          tar xzf /tmp/git.tar.gz -C /tmp
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
+          make -C "/tmp/git-${GIT_VER}" prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
+          rm -rf "/tmp/git-${GIT_VER}" /tmp/git.tar.gz
           git --version
 
       - name: Checkout
@@ -369,12 +365,11 @@ jobs:
           if [ "${GIT_MINOR:-0}" -lt 18 ]; then
             echo "System git too old, building 2.47.2 from source..."
             GIT_VER=2.47.2
-            cd /tmp
-            curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.xz" -o git.tar.xz
-            tar xf git.tar.xz && cd "git-${GIT_VER}"
-            make prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
-            make prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
-            cd /tmp && rm -rf "git-${GIT_VER}" git.tar.xz
+            curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.gz" -o /tmp/git.tar.gz
+            tar xzf /tmp/git.tar.gz -C /tmp
+            make -C "/tmp/git-${GIT_VER}" prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
+            make -C "/tmp/git-${GIT_VER}" prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
+            rm -rf "/tmp/git-${GIT_VER}" /tmp/git.tar.gz
           fi
           git --version
 
@@ -429,12 +424,11 @@ jobs:
           if [ "${GIT_MINOR:-0}" -lt 18 ]; then
             echo "System git too old, building 2.47.2 from source..."
             GIT_VER=2.47.2
-            cd /tmp
-            curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.xz" -o git.tar.xz
-            tar xf git.tar.xz && cd "git-${GIT_VER}"
-            make prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
-            make prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
-            cd /tmp && rm -rf "git-${GIT_VER}" git.tar.xz
+            curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_VER}.tar.gz" -o /tmp/git.tar.gz
+            tar xzf /tmp/git.tar.gz -C /tmp
+            make -C "/tmp/git-${GIT_VER}" prefix=/usr/local -j$(nproc) NO_TCLTK=1 NO_PERL=1 all
+            make -C "/tmp/git-${GIT_VER}" prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
+            rm -rf "/tmp/git-${GIT_VER}" /tmp/git.tar.gz
           fi
           git --version
 

@@ -1,0 +1,52 @@
+﻿2026-04-17T14:27:43.5486939Z ##[group]Checking docker version
+2026-04-17T14:27:43.5500603Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-04-17T14:27:43.9815724Z '1.48'
+2026-04-17T14:27:43.9826417Z Docker daemon API version: '1.48'
+2026-04-17T14:27:43.9826939Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-04-17T14:27:43.9989439Z '1.48'
+2026-04-17T14:27:44.0001529Z Docker client API version: '1.48'
+2026-04-17T14:27:44.0007466Z ##[endgroup]
+2026-04-17T14:27:44.0009858Z ##[group]Clean up resources from previous jobs
+2026-04-17T14:27:44.0014851Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=4f4873"
+2026-04-17T14:27:44.0151953Z ##[command]/usr/bin/docker network prune --force --filter "label=4f4873"
+2026-04-17T14:27:44.0279724Z ##[endgroup]
+2026-04-17T14:27:44.0280129Z ##[group]Create local container network
+2026-04-17T14:27:44.0289574Z ##[command]/usr/bin/docker network create --label 4f4873 github_network_f6af3aa412534d14804dbee5574fe1ee
+2026-04-17T14:27:44.0802370Z c6fbcb06e75a74c2a282ad5600df67b48cf6bb6ed0904ae885eaa645d2deb503
+2026-04-17T14:27:44.0818257Z ##[endgroup]
+2026-04-17T14:27:44.0841371Z ##[group]Starting job container
+2026-04-17T14:27:44.0862803Z ##[command]/usr/bin/docker pull ubuntu:16.04
+2026-04-17T14:27:44.9111310Z 16.04: Pulling from library/ubuntu
+2026-04-17T14:27:45.1393973Z 58690f9b18fc: Pulling fs layer
+2026-04-17T14:27:45.1394592Z b51569e7c507: Pulling fs layer
+2026-04-17T14:27:45.1394880Z da8ef40b9eca: Pulling fs layer
+2026-04-17T14:27:45.1395293Z fb15d46c38dc: Pulling fs layer
+2026-04-17T14:27:45.1395558Z fb15d46c38dc: Waiting
+2026-04-17T14:27:45.3731222Z da8ef40b9eca: Verifying Checksum
+2026-04-17T14:27:45.3731852Z da8ef40b9eca: Download complete
+2026-04-17T14:27:45.4051344Z b51569e7c507: Download complete
+2026-04-17T14:27:45.6194073Z fb15d46c38dc: Verifying Checksum
+2026-04-17T14:27:45.6195361Z fb15d46c38dc: Download complete
+2026-04-17T14:27:45.7193465Z 58690f9b18fc: Verifying Checksum
+2026-04-17T14:27:45.7194385Z 58690f9b18fc: Download complete
+2026-04-17T14:27:47.2350288Z 58690f9b18fc: Pull complete
+2026-04-17T14:27:47.3551095Z b51569e7c507: Pull complete
+2026-04-17T14:27:47.3707320Z da8ef40b9eca: Pull complete
+2026-04-17T14:27:47.3800799Z fb15d46c38dc: Pull complete
+2026-04-17T14:27:47.3838055Z Digest: sha256:1f1a2d56de1d604801a9671f301190704c25d604a416f59e03c04f5c6ffee0d6
+2026-04-17T14:27:47.3850249Z Status: Downloaded newer image for ubuntu:16.04
+2026-04-17T14:27:47.3857775Z docker.io/library/ubuntu:16.04
+2026-04-17T14:27:47.3940741Z ##[command]/usr/bin/docker create --name 39820e97f2e044b799175f7ec6cdf465_ubuntu1604_e1e7d6 --label 4f4873 --workdir /__w/llvm-toolchain-builder/llvm-toolchain-builder --network github_network_f6af3aa412534d14804dbee5574fe1ee  -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work":"/__w" -v "/home/runner/actions-runner/cached/2.333.1/externals":"/__e":ro -v "/home/runner/work/_temp":"/__w/_temp" -v "/home/runner/work/_actions":"/__w/_actions" -v "/opt/hostedtoolcache":"/__t" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" --entrypoint "tail" ubuntu:16.04 "-f" "/dev/null"
+2026-04-17T14:27:47.4171344Z 3ff4eb8ea38e629e27de01b307dbefc1f1f6624616e53ee5dcb92372bbadfa67
+2026-04-17T14:27:47.4193926Z ##[command]/usr/bin/docker start 3ff4eb8ea38e629e27de01b307dbefc1f1f6624616e53ee5dcb92372bbadfa67
+2026-04-17T14:27:47.5716195Z 3ff4eb8ea38e629e27de01b307dbefc1f1f6624616e53ee5dcb92372bbadfa67
+2026-04-17T14:27:47.5743795Z ##[command]/usr/bin/docker ps --all --filter id=3ff4eb8ea38e629e27de01b307dbefc1f1f6624616e53ee5dcb92372bbadfa67 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-04-17T14:27:47.5866206Z 3ff4eb8ea38e629e27de01b307dbefc1f1f6624616e53ee5dcb92372bbadfa67 Up Less than a second
+2026-04-17T14:27:47.5883889Z ##[command]/usr/bin/docker inspect --format "{{range .Config.Env}}{{println .}}{{end}}" 3ff4eb8ea38e629e27de01b307dbefc1f1f6624616e53ee5dcb92372bbadfa67
+2026-04-17T14:27:47.6008076Z CI=true
+2026-04-17T14:27:47.6009157Z HOME=/github/home
+2026-04-17T14:27:47.6018704Z GITHUB_ACTIONS=true
+2026-04-17T14:27:47.6019196Z PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+2026-04-17T14:27:47.6029527Z ##[endgroup]
+2026-04-17T14:27:47.6038601Z ##[group]Waiting for all services to be ready
+2026-04-17T14:27:47.6040341Z ##[endgroup]

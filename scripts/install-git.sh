@@ -34,16 +34,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates curl make gcc libssl-dev libcurl4-openssl-dev \
     libexpat1-dev gettext zlib1g-dev autoconf
 
-cd /tmp
-curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_BUILD_VERSION}.tar.xz" -o git.tar.xz
-tar xf git.tar.xz
-cd "git-${GIT_BUILD_VERSION}"
+curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-${GIT_BUILD_VERSION}.tar.gz" -o /tmp/git.tar.gz
+tar xzf /tmp/git.tar.gz -C /tmp
 
-make prefix=/usr/local -j"$(nproc)" NO_TCLTK=1 NO_PERL=1 all
-make prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
+make -C "/tmp/git-${GIT_BUILD_VERSION}" prefix=/usr/local -j"$(nproc)" NO_TCLTK=1 NO_PERL=1 all
+make -C "/tmp/git-${GIT_BUILD_VERSION}" prefix=/usr/local NO_TCLTK=1 NO_PERL=1 install
 
 # Cleanup build artifacts to save disk
-cd /tmp
-rm -rf "git-${GIT_BUILD_VERSION}" git.tar.xz
+rm -rf "/tmp/git-${GIT_BUILD_VERSION}" /tmp/git.tar.gz
 
 echo "Installed git $(git --version)"
