@@ -2,3 +2,5 @@
 *.tar.gz
 /build/
 /opt/
+run-logs/
+run-logs.zip

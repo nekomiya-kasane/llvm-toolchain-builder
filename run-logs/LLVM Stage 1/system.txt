@@ -1,3 +1,0 @@
-2026-04-17T14:28:08.3170000Z Evaluating stage1.if
-2026-04-17T14:28:08.3170000Z Evaluating: success()
-2026-04-17T14:28:08.3170000Z Result: false
