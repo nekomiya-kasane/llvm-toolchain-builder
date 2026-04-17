@@ -73,7 +73,7 @@ jobs:
             -v /opt/bootstrap:/opt/bootstrap \
             -e BOOTSTRAP_PREFIX=/opt/bootstrap \
             ${{ env.IMAGE }} \
-            bash -c "chmod +x /src/scripts/bootstrap.sh && /src/scripts/bootstrap.sh"
+            bash /src/scripts/bootstrap.sh
 
       - name: Verify bootstrap
         run: |
@@ -160,7 +160,6 @@ jobs:
                 ca-certificates curl file patchelf xz-utils
               export PATH="/opt/bootstrap/bin:${PATH}"
               export LD_LIBRARY_PATH="/opt/bootstrap/lib64:/opt/bootstrap/lib"
-              chmod +x /src/scripts/build-llvm-stage1.sh
               bash /src/scripts/build-llvm-stage1.sh
             '
 
@@ -254,7 +253,6 @@ jobs:
                 ca-certificates curl file patchelf xz-utils libc6-dev
               export PATH="/opt/stage1/bin:/opt/bootstrap/bin:${PATH}"
               export LD_LIBRARY_PATH="/opt/stage1/lib:/opt/bootstrap/lib64:/opt/bootstrap/lib"
-              chmod +x /src/scripts/build-llvm-stage2.sh
               bash /src/scripts/build-llvm-stage2.sh
             '
 
@@ -325,7 +323,6 @@ jobs:
                 ca-certificates curl file patchelf xz-utils libc6-dev
               export PATH="/opt/stage1/bin:/opt/bootstrap/bin:${PATH}"
               export LD_LIBRARY_PATH="/opt/stage1/lib:/opt/bootstrap/lib64:/opt/bootstrap/lib"
-              chmod +x /src/scripts/build-llvm-stage2.sh
               bash /src/scripts/build-llvm-stage2.sh
             '
 
@@ -377,7 +374,6 @@ jobs:
             -e TOOLCHAIN_DIR=/opt/coca-toolchain-linux-x86_64 \
             ${{ matrix.distro }} \
             bash -c '
-              chmod +x /src/scripts/verify-portability.sh
               bash /src/scripts/verify-portability.sh
             '
 
@@ -421,6 +417,5 @@ jobs:
             -e TOOLCHAIN_DIR=/opt/coca-toolchain-p2996-linux-x86_64 \
             ${{ matrix.distro }} \
             bash -c '
-              chmod +x /src/scripts/verify-portability.sh
               bash /src/scripts/verify-portability.sh
             '
