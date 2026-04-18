@@ -1,0 +1,260 @@
+name: Build LLVM Toolchain (Windows x64)
+# Builds a portable, self-contained LLVM toolchain on Windows using Visual
+# Studio 2022's MSVC (cl.exe) + LLD as the host compiler. Produces a zip
+# that works on any Windows 10/11 x64 machine — no Visual Studio required.
+#
+# Two parallel variant jobs: main (full LLVM) and p2996 (Bloomberg reflection).
+# Both go through a portability verification step.
+
+on:
+  workflow_dispatch:
+    inputs:
+      llvm_version:
+        description: 'LLVM version to build'
+        required: true
+        default: '21.1.1'
+      build_p2996:
+        description: 'Also build p2996 variant'
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build-llvm-win.ps1'
+      - 'scripts/verify-portability-win.ps1'
+      - '.github/workflows/build-toolchain-win.yml'
+
+env:
+  LLVM_VERSION: ${{ github.event.inputs.llvm_version || '21.1.1' }}
+  # Short build dir to avoid MAX_PATH issues with LLDB
+  BUILD_DIR: 'C:\b'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===========================================================================
+  # Job 1: Build LLVM (main variant) — full-featured toolchain
+  # ===========================================================================
+  build-main:
+    name: LLVM Build (main)
+    runs-on: windows-2022
+    timeout-minutes: 360
+    env:
+      VARIANT: main
+      INSTALL_PREFIX: 'C:\coca-toolchain'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.14 (for LLDB bindings)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Disk space report (pre-build)
+        shell: pwsh
+        run: Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}}, @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}}
+
+      - name: Free disk space
+        shell: pwsh
+        run: |
+          # Remove large unused components to maximize build space
+          $dirs = @(
+            'C:\Android',
+            'C:\SeleniumWebDrivers',
+            "${env:JAVA_HOME_8_X64}",
+            "${env:JAVA_HOME_11_X64}",
+            "${env:JAVA_HOME_17_X64}",
+            "${env:JAVA_HOME_25_X64}",
+            'C:\Program Files\dotnet\sdk',
+            'C:\Program Files (x86)\Microsoft SDKs\Azure',
+            'C:\hostedtoolcache\Ruby',
+            'C:\hostedtoolcache\go',
+            'C:\hostedtoolcache\CodeQL',
+            'C:\Miniconda'
+          )
+          foreach ($d in $dirs) {
+            if (Test-Path $d) {
+              Write-Host "Removing $d ..."
+              Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Disk space report (post-cleanup)
+        shell: pwsh
+        run: Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}}, @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}}
+
+      - name: Detect build environment
+        shell: pwsh
+        run: |
+          Write-Host "=== Environment ==="
+          Write-Host "OS: $env:OS"
+          Write-Host "PROCESSOR_ARCHITECTURE: $env:PROCESSOR_ARCHITECTURE"
+          Write-Host "NUMBER_OF_PROCESSORS: $env:NUMBER_OF_PROCESSORS"
+          Write-Host ""
+
+          # Find VS
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vswhere) {
+            $vsPath = & $vswhere -latest -property installationPath
+            $vsVer = & $vswhere -latest -property installationVersion
+            Write-Host "Visual Studio: $vsVer at $vsPath"
+          }
+
+          # Python
+          python --version
+          Write-Host "Python path: $(Get-Command python).Source"
+
+          # SWIG
+          $swig = Get-Command swig.exe -ErrorAction SilentlyContinue
+          if ($swig) { Write-Host "SWIG: $($swig.Source)" }
+
+          # CMake & Ninja
+          cmake --version | Select-Object -First 1
+          ninja --version
+
+      - name: Build LLVM
+        shell: pwsh
+        timeout-minutes: 300
+        env:
+          NPROC: '4'
+          PYTHON_DIR: ${{ env.pythonLocation }}
+        run: |
+          & "${{ github.workspace }}\scripts\build-llvm-win.ps1"
+
+      - name: Disk space report (post-build)
+        shell: pwsh
+        if: always()
+        run: Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{N='Free(GB)';E={[math]::Round($_.Free/1GB,1)}}, @{N='Used(GB)';E={[math]::Round($_.Used/1GB,1)}}
+
+      - name: Upload artifact (main)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coca-toolchain-win-x86_64
+          path: 'C:\coca-toolchain-win-x86_64.zip'
+          retention-days: 14
+          if-no-files-found: error
+
+  # ===========================================================================
+  # Job 2: Build LLVM (p2996 variant) — Bloomberg reflection fork
+  # ===========================================================================
+  build-p2996:
+    name: LLVM Build (p2996)
+    runs-on: windows-2022
+    if: ${{ github.event.inputs.build_p2996 != 'false' }}
+    timeout-minutes: 360
+    env:
+      VARIANT: p2996
+      INSTALL_PREFIX: 'C:\coca-toolchain-p2996'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.14 (for LLDB bindings)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Free disk space
+        shell: pwsh
+        run: |
+          $dirs = @(
+            'C:\Android',
+            'C:\SeleniumWebDrivers',
+            "${env:JAVA_HOME_8_X64}",
+            "${env:JAVA_HOME_11_X64}",
+            "${env:JAVA_HOME_17_X64}",
+            "${env:JAVA_HOME_25_X64}",
+            'C:\Program Files\dotnet\sdk',
+            'C:\Program Files (x86)\Microsoft SDKs\Azure',
+            'C:\hostedtoolcache\Ruby',
+            'C:\hostedtoolcache\go',
+            'C:\hostedtoolcache\CodeQL',
+            'C:\Miniconda'
+          )
+          foreach ($d in $dirs) {
+            if (Test-Path $d) {
+              Write-Host "Removing $d ..."
+              Remove-Item $d -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Build LLVM (p2996)
+        shell: pwsh
+        timeout-minutes: 300
+        env:
+          NPROC: '4'
+          PYTHON_DIR: ${{ env.pythonLocation }}
+        run: |
+          & "${{ github.workspace }}\scripts\build-llvm-win.ps1"
+
+      - name: Upload artifact (p2996)
+        uses: actions/upload-artifact@v4
+        with:
+          name: coca-toolchain-p2996-win-x86_64
+          path: 'C:\coca-toolchain-p2996-win-x86_64.zip'
+          retention-days: 14
+          if-no-files-found: error
+
+  # ===========================================================================
+  # Job 3: Verify portability (main)
+  # ===========================================================================
+  verify-main:
+    name: Verify (main)
+    needs: build-main
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coca-toolchain-win-x86_64
+          path: 'C:\'
+
+      - name: Unpack toolchain
+        shell: pwsh
+        run: |
+          & 7z x 'C:\coca-toolchain-win-x86_64.zip' -oC:\ -y
+
+      - name: Run portability verification
+        shell: pwsh
+        env:
+          TOOLCHAIN_DIR: 'C:\coca-toolchain-win-x86_64'
+        run: |
+          & "${{ github.workspace }}\scripts\verify-portability-win.ps1"
+
+  # ===========================================================================
+  # Job 4: Verify portability (p2996)
+  # ===========================================================================
+  verify-p2996:
+    name: Verify (p2996)
+    needs: build-p2996
+    if: ${{ github.event.inputs.build_p2996 != 'false' }}
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coca-toolchain-p2996-win-x86_64
+          path: 'C:\'
+
+      - name: Unpack toolchain
+        shell: pwsh
+        run: |
+          & 7z x 'C:\coca-toolchain-p2996-win-x86_64.zip' -oC:\ -y
+
+      - name: Run portability verification
+        shell: pwsh
+        env:
+          TOOLCHAIN_DIR: 'C:\coca-toolchain-p2996-win-x86_64'
+        run: |
+          & "${{ github.workspace }}\scripts\verify-portability-win.ps1"

@@ -395,6 +395,7 @@ build_ncurses() {
         --without-debug \
         --without-ada \
         --enable-widec \
+        --enable-overwrite \
         --enable-pc-files \
         --with-pkg-config-libdir="${BOOTSTRAP_PREFIX}/lib/pkgconfig"
 
@@ -529,3 +530,4 @@ main() {
 }
 
 main "$@"
+
