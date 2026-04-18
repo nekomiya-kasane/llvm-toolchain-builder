@@ -100,6 +100,8 @@ function Invoke-VsDevShell {
 
 # ── 1. Obtain source code ────────────────────────────────────────────────────
 function Get-LLVMSource {
+    # IMPORTANT: Every command that produces stdout MUST be piped to Out-Null
+    # or captured, otherwise PowerShell adds it to the function return value.
     switch ($VARIANT) {
         'main' {
             if (Test-Path (Join-Path $LLVM_SRC 'llvm')) {
@@ -114,7 +116,11 @@ function Get-LLVMSource {
                 }
                 New-Item -ItemType Directory -Path $LLVM_SRC -Force | Out-Null
                 Log "Extracting LLVM source (this takes a while)..."
-                & 7z x $tarball -so | & 7z x -aoa -si -ttar "-o$LLVM_SRC" -y
+                # Use cmd /c to run the 7z pipe — in PowerShell, unhandled stdout
+                # from external commands becomes part of the function return value.
+                # cmd /c keeps the pipe internal and only returns the exit code.
+                $null = cmd /c "7z x `"$tarball`" -so 2>nul | 7z x -aoa -si -ttar `"-o$LLVM_SRC`" -y >nul"
+                if ($LASTEXITCODE -ne 0) { throw "7z extraction failed (exit code $LASTEXITCODE)" }
                 # Move contents up from nested dir
                 $nested = Get-ChildItem $LLVM_SRC -Directory | Where-Object { $_.Name -like 'llvm-project-*' } | Select-Object -First 1
                 if ($nested) {
@@ -129,7 +135,7 @@ function Get-LLVMSource {
                 Log "Using existing p2996 source at $P2996_SRC"
             } else {
                 Log "Cloning Bloomberg clang-p2996..."
-                & git clone --depth 1 --branch p2996 "https://github.com/bloomberg/clang-p2996.git" $P2996_SRC
+                $null = & git clone --depth 1 --branch p2996 "https://github.com/bloomberg/clang-p2996.git" $P2996_SRC 2>&1
                 if ($LASTEXITCODE -ne 0) { throw "git clone failed" }
             }
             return $P2996_SRC
