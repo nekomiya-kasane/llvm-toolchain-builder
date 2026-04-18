@@ -39,7 +39,7 @@ jobs:
   build-main:
     name: LLVM Build (main)
     runs-on: windows-2022
-    timeout-minutes: 360
+    timeout-minutes: 720
     env:
       VARIANT: main
       INSTALL_PREFIX: 'C:\coca-toolchain'
@@ -116,7 +116,7 @@ jobs:
 
       - name: Build LLVM
         shell: pwsh
-        timeout-minutes: 300
+        timeout-minutes: 720
         env:
           NPROC: '4'
           PYTHON_DIR: ${{ env.pythonLocation }}
@@ -143,7 +143,7 @@ jobs:
     name: LLVM Build (p2996)
     runs-on: windows-2022
     if: ${{ github.event.inputs.build_p2996 != 'false' }}
-    timeout-minutes: 360
+    timeout-minutes: 720
     env:
       VARIANT: p2996
       INSTALL_PREFIX: 'C:\coca-toolchain-p2996'
@@ -182,7 +182,7 @@ jobs:
 
       - name: Build LLVM (p2996)
         shell: pwsh
-        timeout-minutes: 300
+        timeout-minutes: 720
         env:
           NPROC: '4'
           PYTHON_DIR: ${{ env.pythonLocation }}

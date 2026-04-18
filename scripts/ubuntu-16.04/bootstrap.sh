@@ -254,7 +254,8 @@ build_swig() {
     log "Building SWIG ${SWIG_VERSION}..."
 
     local tarball="${DOWNLOAD_DIR}/swig-${SWIG_VERSION}.tar.gz"
-    download "https://github.com/swig/swig/archive/refs/tags/v${SWIG_VERSION}.tar.gz" "${tarball}"
+    # Use release tarball (includes pre-generated configure), NOT GitHub archive
+    download "https://github.com/swig/swig/releases/download/v${SWIG_VERSION}/swig-${SWIG_VERSION}.tar.gz" "${tarball}"
 
     cd "${BUILD_DIR}"
     tar xf "${tarball}"
@@ -265,7 +266,6 @@ build_swig() {
         build_pcre2
     fi
 
-    ./autogen.sh
     ./configure \
         --prefix="${BOOTSTRAP_PREFIX}" \
         --with-pcre2-prefix="${BOOTSTRAP_PREFIX}"
