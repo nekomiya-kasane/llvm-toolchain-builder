@@ -1,7 +1,9 @@
 name: Build LLVM Toolchain (Linux ARM64)
 # Architecture: Uses GitHub's free ARM64 runners (ubuntu-24.04-arm).
-# All compilation runs inside ubuntu:16.04 ARM64 Docker container
+# All compilation runs inside arm64v8/ubuntu:16.04 Docker container
 # to produce glibc-2.23 compatible binaries.
+#
+# Caching strategy: identical to x86_64 workflow — see build-toolchain.yml header.
 
 on:
   workflow_dispatch:
@@ -14,8 +16,8 @@ on:
         description: 'Also build p2996 variant'
         type: boolean
         default: true
-      skip_bootstrap:
-        description: 'Skip bootstrap (use cached)'
+      force_rebuild:
+        description: 'Force rebuild (ignore cache)'
         type: boolean
         default: false
   push:
@@ -44,6 +46,8 @@ jobs:
     name: Bootstrap Tools (ARM64)
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 540
+    outputs:
+      cache-hit: ${{ steps.cache-bootstrap.outputs.cache-hit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,20 +58,18 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghcli /opt/hostedtoolcache || true
           df -h /
 
-      - name: Set up QEMU (for multi-arch Docker)
-        uses: docker/setup-qemu-action@v3
-
-      - name: Pull container image
-        run: docker pull ${{ env.IMAGE }}
-
       - name: Cache bootstrap
         id: cache-bootstrap
         uses: actions/cache@v4
         with:
           path: /opt/bootstrap
-          key: bootstrap-arm64-v1-${{ hashFiles('scripts/bootstrap/common-bootstrap.sh', 'scripts/bootstrap/ubuntu-16.04.sh', 'scripts/common/versions.sh') }}
+          key: arm64-bootstrap-v1-${{ hashFiles('scripts/bootstrap/common-bootstrap.sh', 'scripts/bootstrap/ubuntu-16.04.sh', 'scripts/common/versions.sh') }}
           restore-keys: |
-            bootstrap-arm64-v1-
+            arm64-bootstrap-v1-
+
+      - name: Pull container image
+        if: steps.cache-bootstrap.outputs.cache-hit != 'true'
+        run: docker pull ${{ env.IMAGE }}
 
       - name: Build bootstrap tools
         if: steps.cache-bootstrap.outputs.cache-hit != 'true'
@@ -80,6 +82,7 @@ jobs:
             bash /src/scripts/bootstrap/ubuntu-16.04.sh
 
       - name: Verify bootstrap
+        if: steps.cache-bootstrap.outputs.cache-hit != 'true'
         run: |
           docker run --rm \
             -v /opt/bootstrap:/opt/bootstrap:ro \
@@ -104,7 +107,7 @@ jobs:
         with:
           name: bootstrap-tools-arm64
           path: /tmp/bootstrap-tools-arm64.tar
-          retention-days: 3
+          retention-days: 7
           compression-level: 1
 
   # ===========================================================================
@@ -115,6 +118,8 @@ jobs:
     needs: bootstrap
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 540
+    outputs:
+      cache-hit: ${{ steps.cache-stage1.outputs.cache-hit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,16 +129,22 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghcli /opt/hostedtoolcache || true
           df -h /
 
-      - name: Pull container image
-        run: docker pull ${{ env.IMAGE }}
+      - name: Cache Stage 1
+        id: cache-stage1
+        uses: actions/cache@v4
+        with:
+          path: /opt/stage1
+          key: arm64-stage1-v1-llvm${{ env.LLVM_VERSION }}-${{ hashFiles('scripts/common/versions.sh', 'scripts/common/source.sh', 'scripts/common/llvm-config.sh', 'scripts/linux-arm64/build-llvm-stage1.sh') }}
 
       - name: Download bootstrap tools
+        if: steps.cache-stage1.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v4
         with:
           name: bootstrap-tools-arm64
           path: /tmp/artifacts
 
       - name: Extract bootstrap tools
+        if: steps.cache-stage1.outputs.cache-hit != 'true'
         run: |
           sudo mkdir -p /opt/bootstrap
           cd /opt
@@ -141,13 +152,18 @@ jobs:
           rm -rf /tmp/artifacts
 
       - name: Cache LLVM source
-        id: cache-llvm-src
+        if: steps.cache-stage1.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: /tmp/llvm-project
           key: llvm-src-arm64-${{ env.LLVM_VERSION }}
 
+      - name: Pull container image
+        if: steps.cache-stage1.outputs.cache-hit != 'true'
+        run: docker pull ${{ env.IMAGE }}
+
       - name: Build LLVM Stage 1
+        if: steps.cache-stage1.outputs.cache-hit != 'true'
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/src:ro \
@@ -168,6 +184,7 @@ jobs:
             '
 
       - name: Verify Stage 1
+        if: steps.cache-stage1.outputs.cache-hit != 'true'
         run: |
           docker run --rm \
             -v /opt/stage1:/opt/stage1:ro \
@@ -189,7 +206,7 @@ jobs:
         with:
           name: stage1-install-arm64
           path: /tmp/stage1-install-arm64.tar
-          retention-days: 1
+          retention-days: 7
           compression-level: 1
 
   # ===========================================================================
@@ -200,6 +217,8 @@ jobs:
     needs: [bootstrap, stage1]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 540
+    outputs:
+      cache-hit: ${{ steps.cache-stage2.outputs.cache-hit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -209,22 +228,33 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghcli /opt/hostedtoolcache || true
           df -h /
 
+      - name: Cache Stage 2 (main)
+        id: cache-stage2
+        uses: actions/cache@v4
+        with:
+          path: /tmp/coca-toolchain-linux-aarch64.tar.xz
+          key: arm64-stage2-main-v1-llvm${{ env.LLVM_VERSION }}-${{ hashFiles('scripts/common/**', 'scripts/linux-arm64/build-llvm-stage2.sh') }}
+
       - name: Pull container image
+        if: steps.cache-stage2.outputs.cache-hit != 'true'
         run: docker pull ${{ env.IMAGE }}
 
       - name: Download bootstrap tools
+        if: steps.cache-stage2.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v4
         with:
           name: bootstrap-tools-arm64
           path: /tmp/artifacts
 
       - name: Download Stage 1
+        if: steps.cache-stage2.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v4
         with:
           name: stage1-install-arm64
           path: /tmp/artifacts-s1
 
       - name: Extract artifacts
+        if: steps.cache-stage2.outputs.cache-hit != 'true'
         run: |
           sudo mkdir -p /opt/bootstrap /opt/stage1
           cd /opt
@@ -233,12 +263,14 @@ jobs:
           rm -rf /tmp/artifacts /tmp/artifacts-s1
 
       - name: Cache LLVM source
+        if: steps.cache-stage2.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: /tmp/llvm-project
           key: llvm-src-arm64-${{ env.LLVM_VERSION }}
 
       - name: Build LLVM Stage 2 (main)
+        if: steps.cache-stage2.outputs.cache-hit != 'true'
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/src:ro \
@@ -265,7 +297,7 @@ jobs:
         with:
           name: coca-toolchain-linux-aarch64
           path: /tmp/coca-toolchain-linux-aarch64.tar.xz
-          retention-days: 14
+          retention-days: 30
 
   # ===========================================================================
   # Job 4: LLVM Stage 2 — p2996 (Bloomberg C++ reflection fork)
@@ -276,6 +308,8 @@ jobs:
     if: ${{ github.event.inputs.build_p2996 != 'false' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 540
+    outputs:
+      cache-hit: ${{ steps.cache-stage2-p2996.outputs.cache-hit }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -285,22 +319,33 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghcli /opt/hostedtoolcache || true
           df -h /
 
+      - name: Cache Stage 2 (p2996)
+        id: cache-stage2-p2996
+        uses: actions/cache@v4
+        with:
+          path: /tmp/coca-toolchain-p2996-linux-aarch64.tar.xz
+          key: arm64-stage2-p2996-v1-llvm${{ env.LLVM_VERSION }}-${{ hashFiles('scripts/common/**', 'scripts/linux-arm64/build-llvm-stage2.sh') }}
+
       - name: Pull container image
+        if: steps.cache-stage2-p2996.outputs.cache-hit != 'true'
         run: docker pull ${{ env.IMAGE }}
 
       - name: Download bootstrap tools
+        if: steps.cache-stage2-p2996.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v4
         with:
           name: bootstrap-tools-arm64
           path: /tmp/artifacts
 
       - name: Download Stage 1
+        if: steps.cache-stage2-p2996.outputs.cache-hit != 'true'
         uses: actions/download-artifact@v4
         with:
           name: stage1-install-arm64
           path: /tmp/artifacts-s1
 
       - name: Extract artifacts
+        if: steps.cache-stage2-p2996.outputs.cache-hit != 'true'
         run: |
           sudo mkdir -p /opt/bootstrap /opt/stage1
           cd /opt
@@ -309,6 +354,7 @@ jobs:
           rm -rf /tmp/artifacts /tmp/artifacts-s1
 
       - name: Build LLVM Stage 2 (p2996)
+        if: steps.cache-stage2-p2996.outputs.cache-hit != 'true'
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/src:ro \
@@ -335,7 +381,7 @@ jobs:
         with:
           name: coca-toolchain-p2996-linux-aarch64
           path: /tmp/coca-toolchain-p2996-linux-aarch64.tar.xz
-          retention-days: 14
+          retention-days: 30
 
   # ===========================================================================
   # Job 5: Portability verification
