@@ -198,7 +198,11 @@ build_swig() {
     tar xf "${tarball}"
     cd "swig-${SWIG_VERSION}"
 
-    # Use SWIG's bundled pcre-build.sh to build PCRE2 in-tree
+    # SWIG's Tools/pcre-build.sh expects a pcre2 tarball in the source dir
+    local pcre2_tarball="pcre2-${PCRE2_VERSION}.tar.bz2"
+    if [ ! -f "${pcre2_tarball}" ]; then
+        download "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${PCRE2_VERSION}/pcre2-${PCRE2_VERSION}.tar.bz2" "${pcre2_tarball}"
+    fi
     Tools/pcre-build.sh
 
     ./configure \
