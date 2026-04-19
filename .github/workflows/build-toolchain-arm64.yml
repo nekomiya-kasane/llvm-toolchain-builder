@@ -162,36 +162,6 @@ jobs:
         if: steps.cache-stage1.outputs.cache-hit != 'true'
         run: docker pull ${{ env.IMAGE }}
 
-      - name: Diagnose bootstrap GCC
-        if: steps.cache-stage1.outputs.cache-hit != 'true'
-        run: |
-          docker run --rm \
-            -v /opt/bootstrap:/opt/bootstrap:ro \
-            ${{ env.IMAGE }} \
-            bash -c '
-              export PATH="/opt/bootstrap/bin:${PATH}"
-              export LD_LIBRARY_PATH="/opt/bootstrap/lib64:/opt/bootstrap/lib"
-              echo "=== gcc --version ==="
-              gcc --version 2>&1 || echo "gcc --version FAILED with exit code $?"
-              echo "=== ldd gcc ==="
-              ldd /opt/bootstrap/bin/gcc 2>&1 || true
-              echo "=== find cc1 ==="
-              find /opt/bootstrap -name "cc1" -type f 2>/dev/null
-              cc1path=$(find /opt/bootstrap -name "cc1" -type f 2>/dev/null | head -1)
-              if [ -n "$cc1path" ]; then
-                echo "=== ldd cc1 ==="
-                ldd "$cc1path" 2>&1 || true
-                echo "=== try running cc1 ==="
-                "$cc1path" --version 2>&1 || echo "cc1 exited with $?"
-              fi
-              echo "=== gcc -v -c test ==="
-              echo "int main(){return 0;}" > /tmp/test.c
-              gcc -v -c /tmp/test.c -o /tmp/test.o 2>&1 || echo "gcc -v -c FAILED with exit code $?"
-              echo "=== libstdc++ check ==="
-              ls -la /opt/bootstrap/lib64/libstdc++* 2>/dev/null || echo "no libstdc++ in lib64"
-              ls -la /opt/bootstrap/lib/libstdc++* 2>/dev/null || echo "no libstdc++ in lib"
-            '
-
       - name: Build LLVM Stage 1
         if: steps.cache-stage1.outputs.cache-hit != 'true'
         run: |
@@ -207,7 +177,7 @@ jobs:
             bash -c '
               apt-get update -qq
               DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-                ca-certificates curl file patchelf xz-utils git
+                ca-certificates curl file patchelf xz-utils git binutils
               export PATH="/opt/bootstrap/bin:${PATH}"
               export LD_LIBRARY_PATH="/opt/bootstrap/lib64:/opt/bootstrap/lib"
               bash /src/scripts/linux-arm64/build-llvm-stage1.sh
